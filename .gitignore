@@ -2,3 +2,4 @@ myenv
 venv
 process_log.txt
 __pycache__
+.env
