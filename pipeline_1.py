@@ -5,7 +5,6 @@ import ocrmypdf
 import pytesseract
 import pdf2image
 import logging
-from concurrent.futures import ThreadPoolExecutor
 from openai import OpenAI
 
 # Setup logging
@@ -79,12 +78,11 @@ def process_file(pdf_path, input_dir, output_dir, client):
             logging.error(f"Error moving {os.path.basename(pdf_path)}: {e}")
             print(f"Error moving {os.path.basename(pdf_path)}: {e}")
 
-def move_non_life_sciences_pdfs(input_dir, output_dir, client, num_threads=4):
-    with ThreadPoolExecutor(max_workers=num_threads) as executor:
-        for filename in os.listdir(input_dir):
-            if filename.lower().endswith('.pdf'):
-                pdf_path = os.path.join(input_dir, filename)
-                executor.submit(process_file, pdf_path, input_dir, output_dir, client)
+def move_non_life_sciences_pdfs(input_dir, output_dir, client):
+    for filename in os.listdir(input_dir):
+        if filename.lower().endswith('.pdf'):
+            pdf_path = os.path.join(input_dir, filename)
+            process_file(pdf_path, input_dir, output_dir, client)
 
 # Initialize the client for your LLM
 client = OpenAI(base_url="http://localhost:1234/v1", api_key="lm-studio")
