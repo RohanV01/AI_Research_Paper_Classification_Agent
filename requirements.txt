@@ -1,0 +1,13 @@
+crewai
+crewai_tools
+flask
+openai
+pypdf2
+requests
+pymupdf
+keras-ocr
+pdf2image
+pytesseract 
+Pillow 
+opencv-python     
+ocrmypdf
