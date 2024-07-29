@@ -6,11 +6,10 @@ import pytesseract
 import pdf2image
 import logging
 import time
-from openai import OpenAI
-import time
 import datetime
+from openai import OpenAI
 
-# Setup logging
+# Setup logging with a unique filename based on the current timestamp
 log_filename = f"process_log_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
 logging.basicConfig(filename=log_filename, filemode='w', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -90,7 +89,7 @@ def move_non_life_sciences_pdfs(input_dir, output_dir, client):
             process_file(pdf_path, input_dir, output_dir, client)
             file_count += 1
             if file_count % 10 == 0:
-                logging.info(f"Processed {file_count} files, pausing for 2 minutes...")
+                logging.info(f"Processed {file_count} files, pausing for 10 minutes...")
                 print(f"Processed {file_count} files, pausing for 10 minutes...")
                 time.sleep(120)  # Pause for 2 minutes for testing, change to 600 for 10 minutes in production
 
@@ -98,7 +97,7 @@ def move_non_life_sciences_pdfs(input_dir, output_dir, client):
 client = OpenAI(base_url="http://localhost:1234/v1", api_key="lm-studio")
 
 # Directory paths
-input_dir = "D:\\Extracted_Research_Papers\\10.1006"
-output_dir = "D:\\NonLifeSci_Papers\\10.1006"
+input_dir = "D:\\Extracted_Research_Papers\\10.1016"
+output_dir = "D:\\NonLifeSci_Papers\\10.1016"
 
 move_non_life_sciences_pdfs(input_dir, output_dir, client)
