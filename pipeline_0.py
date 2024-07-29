@@ -5,11 +5,13 @@ import ocrmypdf
 import pytesseract
 import pdf2image
 import logging
-from concurrent.futures import ThreadPoolExecutor
+import time
+import datetime
 from openai import OpenAI
 
-# Setup logging
-logging.basicConfig(filename='process_log.txt', filemode='w', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# Setup logging with a unique filename based on the current timestamp
+log_filename = f"process_log_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+logging.basicConfig(filename=log_filename, filemode='w', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def extract_text_from_first_page(pdf_path):
     try:
@@ -79,12 +81,17 @@ def process_file(pdf_path, input_dir, output_dir, client):
             logging.error(f"Error moving {os.path.basename(pdf_path)}: {e}")
             print(f"Error moving {os.path.basename(pdf_path)}: {e}")
 
-def move_non_life_sciences_pdfs(input_dir, output_dir, client, num_threads=4):
-    with ThreadPoolExecutor(max_workers=num_threads) as executor:
-        for filename in os.listdir(input_dir):
-            if filename.lower().endswith('.pdf'):
-                pdf_path = os.path.join(input_dir, filename)
-                executor.submit(process_file, pdf_path, input_dir, output_dir, client)
+def move_non_life_sciences_pdfs(input_dir, output_dir, client):
+    file_count = 0
+    for filename in os.listdir(input_dir):
+        if filename.lower().endswith('.pdf'):
+            pdf_path = os.path.join(input_dir, filename)
+            process_file(pdf_path, input_dir, output_dir, client)
+            file_count += 1
+            if file_count % 10 == 0:
+                logging.info(f"Processed {file_count} files, pausing for 10 minutes...")
+                print(f"Processed {file_count} files, pausing for 10 minutes...")
+                time.sleep(120)  # Pause for 2 minutes for testing, change to 600 for 10 minutes in production
 
 # Initialize the client for your LLM
 client = OpenAI(base_url="http://localhost:1234/v1", api_key="lm-studio")
