@@ -52,7 +52,7 @@ def classify_paper(text, client):
         logging.info("No text found for classification.")
         print("No text found for classification.")
         return "unknown"
-    prompt = f"Based on the following abstract from a research paper, determine if the content is focused on life sciences. Respond with 'yes' for life sciences and 'no' for other fields. Abstract: {text}"
+    prompt = f"Based on the following abstract from a research paper, determine if the content is focused on biological life sciences. Respond with only one word, 'yes' for biological life sciences and 'no' for other fields. Abstract: {text}"
     try:
         response = client.chat.completions.create(
             model="lmstudio-community/Meta-Llama-3-8B-Instruct-GGUF",
@@ -83,15 +83,18 @@ def process_file(pdf_path, input_dir, output_dir, client):
 
 def move_non_life_sciences_pdfs(input_dir, output_dir, client):
     file_count = 0
+    total_files = len([name for name in os.listdir(input_dir) if name.lower().endswith('.pdf')])
     for filename in os.listdir(input_dir):
         if filename.lower().endswith('.pdf'):
             pdf_path = os.path.join(input_dir, filename)
             process_file(pdf_path, input_dir, output_dir, client)
             file_count += 1
             if file_count % 10 == 0:
-                logging.info(f"Processed {file_count} files, pausing for 10 minutes...")
-                print(f"Processed {file_count} files, pausing for 10 minutes...")
+                logging.info(f"Processed {file_count} files out of {total_files}, pausing for 10 minutes...")
+                print(f"Processed {file_count} files out of {total_files}, pausing for 10 minutes...")
                 time.sleep(120)  # Pause for 2 minutes for testing, change to 600 for 10 minutes in production
+    logging.info(f"All {file_count} files processed.")
+    print(f"All {file_count} files processed.")
 
 # Initialize the client for your LLM
 client = OpenAI(base_url="http://localhost:1234/v1", api_key="lm-studio")
