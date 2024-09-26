@@ -6,11 +6,11 @@ import pytesseract
 import pdf2image
 import logging
 import time
-from openai import OpenAI
-import time
 import datetime
+from openai import OpenAI
+from concurrent.futures import ThreadPoolExecutor, as_completed  # Import for multithreading
 
-# Setup logging
+# Setup logging with a unique filename based on the current timestamp
 log_filename = f"process_log_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
 logging.basicConfig(filename=log_filename, filemode='w', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -53,7 +53,7 @@ def classify_paper(text, client):
         logging.info("No text found for classification.")
         print("No text found for classification.")
         return "unknown"
-    prompt = f"Based on the following abstract from a research paper, determine if the content is focused on life sciences. Respond with 'yes' for life sciences and 'no' for other fields. Abstract: {text}"
+    prompt = f"Based on the following abstract from a research paper, determine if the content is focused on biological life sciences. Respond with only one word, 'yes' for biological life sciences and 'no' for other fields. Abstract: {text}"
     try:
         response = client.chat.completions.create(
             model="lmstudio-community/Meta-Llama-3-8B-Instruct-GGUF",
@@ -84,15 +84,31 @@ def process_file(pdf_path, input_dir, output_dir, client):
 
 def move_non_life_sciences_pdfs(input_dir, output_dir, client):
     file_count = 0
-    for filename in os.listdir(input_dir):
-        if filename.lower().endswith('.pdf'):
-            pdf_path = os.path.join(input_dir, filename)
-            process_file(pdf_path, input_dir, output_dir, client)
+    total_files = len([name for name in os.listdir(input_dir) if name.lower().endswith('.pdf')])
+
+    # Use ThreadPoolExecutor to process files concurrently
+    with ThreadPoolExecutor(max_workers=2) as executor:  # Limit to 3 threads
+        futures = []
+        for filename in os.listdir(input_dir):
+            if filename.lower().endswith('.pdf'):
+                pdf_path = os.path.join(input_dir, filename)
+                futures.append(executor.submit(process_file, pdf_path, input_dir, output_dir, client))
+
+        for future in as_completed(futures):
             file_count += 1
+            try:
+                future.result()  # This will re-raise any exception from the thread
+            except Exception as e:
+                logging.error(f"Error processing a file in thread: {e}")
+                print(f"Error processing a file in thread: {e}")
+
             if file_count % 10 == 0:
-                logging.info(f"Processed {file_count} files, pausing for 2 minutes...")
-                print(f"Processed {file_count} files, pausing for 10 minutes...")
+                logging.info(f"Processed {file_count} files out of {total_files}, pausing for 2 minutes...")
+                print(f"Processed {file_count} files out of {total_files}, pausing for 2 minutes...")
                 time.sleep(120)  # Pause for 2 minutes for testing, change to 600 for 10 minutes in production
+
+    logging.info(f"All {file_count} files processed.")
+    print(f"All {file_count} files processed.")
 
 # Initialize the client for your LLM
 client = OpenAI(base_url="http://localhost:1234/v1", api_key="lm-studio")
@@ -101,6 +117,5 @@ client = OpenAI(base_url="http://localhost:1234/v1", api_key="lm-studio")
 input_dir = "D:\\Extracted_Research_Papers\\10.1006"
 output_dir = "D:\\NonLifeSci_Papers\\10.1006"
 
+# Start processing with multithreading
 move_non_life_sciences_pdfs(input_dir, output_dir, client)
-
-
